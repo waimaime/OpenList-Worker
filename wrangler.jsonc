@@ -23,7 +23,7 @@
 // 用户填入的值会成为该 Worker 的 Secret，后续更新不会被覆盖。
 // =============================================================================
 {
-  "name": "openlist-tsworkers",
+  "name": "openlist",
   "main": "src/backend/worker.ts",
   "compatibility_date": "2026-08-04",
   "compatibility_flags": ["nodejs_compat"],
@@ -46,7 +46,7 @@
     //   map（默认）- 整对象序列化为单个 JSON 键值，适合 KV/Blob
     //   key        - 分 key 存储，每实体一条记录（如 users_1）
     //   sql        - 关系表格式，与 Go 后端一致（适用于 D1/MySQL）
-    "DB_FORMAT": "map",
+    "DB_FORMAT": "sql",
 
     // 数据库驱动：
     //   auto（默认）- 自动检测，顺序 mysql → d1 → kv → cfkv → blob → do
@@ -57,7 +57,7 @@
     //   do         - Cloudflare Durable Objects（需下方 durable_objects）
     //   mysql      - 外部 MySQL（需 MYSQL_URLS 或 MYSQL_HOST 等，仅 Node 运行时）
     // 说明：mysql 仅在配置了连接信息时才参与 auto 探测，避免无谓的 TCP 建连。
-    "DB_DRIVER": "auto",
+    "DB_DRIVER": "d1",
 
     // 敏感字段落盘算法（默认 none：不加密；与 DB_DRIVER/DB_FORMAT 正交）：
     //   none（默认）              - 不加密，敏感字段明文落盘
@@ -78,7 +78,7 @@
     // ── 安全鉴权（推荐以 Secret 类型配置，见 .dev.vars.example）──────────
     //
     // JWT 签名密钥（>=16 字符，兼作可选的字段加密密钥与定时任务鉴权）
-    // "JWT_SECRET": "",
+     "JWT_SECRET": "1QvYnAxauCPN24qwRZSjVIdUkt0Yn6hEI4Po85CdPYI",
     //
     // 跳过安装向导，自动以该密码初始化 admin
     // "ADMIN_PASS": "",
@@ -149,8 +149,8 @@
   //   控制台：Workers & Pages → D1 → 创建数据库 → 绑定到 Worker，变量名填 DB
   //   省略 database_id 时，wrangler >= 4.45.0 会自动创建同名库并回写
   //
-  // "d1_databases": [
-  //   { "binding": "DB", "database_name": "openlist", "database_id": "" }
+   "d1_databases": [
+     { "binding": "DB", "database_name": "openlist", "database_id": "c8662d00-03dd-45f7-8a27-9793558d25de" }
   // ],
   //
   // ▶ 方案 C：Durable Objects（内置 SQLite，强一致；DB_FORMAT 建议改为 "sql"）
