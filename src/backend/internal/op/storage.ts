@@ -16,7 +16,6 @@ import { OnedriveAPP } from "../../drivers/onedrive_app/driver"
 import { AliyundriveOpen } from "../../drivers/aliyundrive_open/driver"
 import { GoogleDrive } from "../../drivers/google_drive/driver"
 import { QuarkDriver } from "../../drivers/quark/driver"
-import { Driver115 } from "../../drivers/115/driver"
 import { DriverCloudreve } from "../../drivers/cloudreve_v4/driver"
 import { DriverCloudreveV3 } from "../../drivers/cloudreve_v3/driver"
 import { DriverOpenlist } from "../../drivers/openlist/driver"
@@ -295,14 +294,10 @@ async function createDriver(
   ) {
     driver = new QuarkDriver(parseAddition(storageConfig))
     await driver.init?.()
-  } else if (
-    normDriver === "115" ||
-    normDriver === "115cloud" ||
-    normDriver === "115open" ||
-    normDriver === "115netdisk"
-  ) {
-    driver = new Driver115(parseAddition(storageConfig))
-    await driver.init?.()
+  // 注意：115 / 115Open 统一走 Pan115Driver（115open 目录）。
+  // 旧 drivers/115（Client115）端点写成 /open + /open/ufile/files → /open/open/ufile/files，
+  // 且用 POST+JSON，115 开放平台实际要求 GET+query，会报 "Method POST does not exist"，
+  // 再经错误模板输出为 "[115] API error ()"。该分支已在下方 normDriver.startsWith("115") 处理。
   } else if (
     normDriver === "cloudreve" ||
     normDriver === "cloudrevev3" ||
@@ -392,6 +387,7 @@ async function createDriver(
     await driver.init?.()
   } else if (
     normDriver === "quarktv" ||
+    normDriver === "quarkuctv" ||
     normDriver === "uctv" ||
     normDriver === "quark_uc_tv"
   ) {
@@ -1209,7 +1205,7 @@ async function createDriver(
     await driver.init?.()
   } else if (normDriver === "guangyapan" || normDriver === "guangya") {
     const addition = parseAddition(storageConfig)
-    driver = new GuangYaPanDriver(addition, async (accessToken, refreshToken) => {
+    driver = new GuangYaPanDriver(addition, async (changes) => {
       try {
         const db = await getDb()
         const st = (db.storages || []).find(
@@ -1220,12 +1216,13 @@ async function createDriver(
           typeof st.addition === "string"
             ? JSON.parse(st.addition || "{}")
             : st.addition || {}
-        stAddition.access_token = accessToken
-        if (refreshToken) stAddition.refresh_token = refreshToken
+        // 合并需要持久化的字段（access_token/refresh_token/verification_id/
+        // captcha_token/send_code 等），空串用于显式清除一次性字段
+        Object.assign(stAddition, changes)
         st.addition = JSON.stringify(stAddition)
         await saveDb(db)
       } catch (e) {
-        console.warn("[GuangYaPan] failed to persist tokens:", e)
+        console.warn("[GuangYaPan] failed to persist changes:", e)
       }
     })
     await driver.init?.()
